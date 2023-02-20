@@ -210,13 +210,14 @@ def get_osm_tiles(points,name):
         y = round(p[1]-100)
         #res = np.zeros((200, 200, 4))
         res = full_image[y:y+200,x:x+200]
+        
+        angle = p[2]+90.0
+        rot_mat = cv2.getRotationMatrix2D((100,100), angle, 1.0) #1.0 - scale
+        res = cv2.warpAffine(res, rot_mat, res.shape[1::-1], flags=cv2.INTER_LINEAR)
+        
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
         res[:, :, 3] = mask[:,:,0]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
-        angle = p[2]+90.0
-        rot_mat = cv2.getRotationMatrix2D((100,100), angle, 1.0)
-        res = cv2.warpAffine(res, rot_mat, res.shape[1::-1], flags=cv2.INTER_LINEAR)
-        
         
         cv2.imwrite("output/res_%06d.png"%i, res)
         #image_center = tuple(100,100)
