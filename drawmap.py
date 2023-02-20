@@ -102,14 +102,23 @@ def get_osm_tiles(points,name):
     image = cv2.polylines(full_image, [pts], 
                           isClosed, color, thickness, cv2.LINE_AA)
     print (tuple(pts[-1][0]))
-    cv2.circle(image,tuple(pts[-1][0]), 100, (0,0,255), 20, lineType=cv2.LINE_AA)
+    #cv2.circle(image,tuple(pts[-1][0]), 100, (0,0,255), 20, lineType=cv2.LINE_AA)
     #https://stackoverflow.com/questions/31519197/python-opencv-how-to-crop-circle
     #cv2.imwrite("temp-%dc.png"%z, tile)
     cv2.imwrite("%s-%dc.png"%(name,z), full_image)
-
+    
     for i,p in enumerate(ctrack):
-    	print (i,p)
-
+        print (i,p)
+        x = p[0]-100
+        y = p[1]-100
+        mask = np.zeros((200, 200, 4))
+        mask = cv2.circle(mask, (100,100), 100, (255,255,255), -1)
+        res = np.zeros((200, 200, 4))
+        res = full_image[y:y+200,x:x+200]
+        res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
+        res[:, :, 3] = mask[:,:,0]
+        res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
+        cv2.imwrite("output/res_%06d.png"%i, res)
  
 msg = "Just a map with a track"
  
