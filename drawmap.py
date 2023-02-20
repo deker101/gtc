@@ -9,6 +9,8 @@ import numpy as np
 
 import argparse
 
+fps = 25
+
 def get_gpx_points(gpx):
     first_time = None
     points = []
@@ -95,18 +97,6 @@ def get_osm_tiles(points,name):
         track.append(y)
         ctrack.append([x,y])
     
-    for i,p in enumerate(points):
-        x,y = deg2num_trunc(p[1],p[0],z)
-        x=int(256*(x-x_min))
-        y=int(256*(y-y_min))
-        #print (x,y)
-        #if len(track)<20:
-        if p[3] == 0:
-            vtrack.append([x,y])
-        else:
-            td = p[3]-points[i-1][3]
-            print ('td = ',td)
-    
     print (ctrack)
     isClosed = False
       
@@ -129,7 +119,41 @@ def get_osm_tiles(points,name):
     #cv2.imwrite("temp-%dc.png"%z, tile)
     cv2.imwrite("%s-%dc.png"%(name,z), full_image)
     
-    for i,p in enumerate(ctrack):
+    
+
+    for i,p in enumerate(points):
+        x,y = deg2num_trunc(p[1],p[0],z)
+        x=int(256*(x-x_min))
+        y=int(256*(y-y_min))
+        #print (x,y)
+        #if len(track)<20:
+        if p[3] == 0:
+            for pp in range(fps):
+                vtrack.append([x,y])
+            #break
+        else:
+            td = p[3]-points[i-1][3]
+            prev_x,prev_y = deg2num_trunc(points[i-1][1],points[i-1][0],z)
+            next_x,next_y = deg2num_trunc(p[1],p[0],z)
+            framecnt = int(td*fps)
+            print ('prev', prev_x, prev_y)
+            print ('next', next_x, next_y)
+            
+            for d in range(framecnt):
+                #print (d)
+                #print ('td = ',td, d)
+                x = prev_x + (next_x-prev_x)/framecnt*d
+                y = prev_y + (next_y-prev_y)/framecnt*d
+                x=int(256*(x-x_min))
+                y=int(256*(y-y_min))
+                print (i, 'td = ',td, d, x,y)
+                vtrack.append([x,y])
+            #break
+    print (ctrack[0:3])
+    print (vtrack)
+    print (len(vtrack))
+    #exit()  
+    for i,p in enumerate(vtrack):
         print (i,p)
         x = p[0]-100
         y = p[1]-100
@@ -141,6 +165,8 @@ def get_osm_tiles(points,name):
         res[:, :, 3] = mask[:,:,0]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
         cv2.imwrite("output/res_%06d.png"%i, res)
+
+    
  
 msg = "Just a map with a track"
  
