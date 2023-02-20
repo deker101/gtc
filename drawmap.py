@@ -116,7 +116,7 @@ msg = "Just a map with a track"
 # Initialize parser
 parser = argparse.ArgumentParser(description = msg)
 parser.add_argument("-i", "--input", help = "Input file")
-parser.add_argument("-o", "--output", help = "Output file", default="output.png")
+parser.add_argument("-o", "--output", help = "Output file", default="output/output.png")
 parser.add_argument("-z", "--zoom", help = "Zoom level", default=15)
 
 
