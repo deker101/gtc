@@ -74,6 +74,8 @@ def get_osm_tiles(points,name):
     h*=256
     print (z, w, h)
     full_image = np.zeros((h,w,3), np.uint8)
+    tiles_cnt = (x_max-x_min)*(y_max-y_min)
+    dnl=0
     for x in range(x_min,x_max+1,1):
         for y in range(y_min,y_max+1,1):
             #url = 'https://c.tile.openstreetmap.de/%d/%d/%d.png'%(z,x,y)
@@ -82,9 +84,10 @@ def get_osm_tiles(points,name):
             #surl = 'https://core-sat.maps.yandex.net/tiles?l=sat&x=%d&y=%d&z=%d'%(x,y,z)
             #print (url)
             tile = get_tile(x,y,z)
+            dnl+=1
             xt = (x-x_min)*256
             yt = (y-y_min)*256
-            print (xt,yt)
+            print (dnl, tiles_cnt,xt,yt)
             full_image[yt:yt+256,xt:xt+256] = tile
     
     for p in points:
@@ -153,13 +156,14 @@ def get_osm_tiles(points,name):
     print (vtrack)
     print (len(vtrack))
     #exit()  
+    mask = np.zeros((200, 200, 4))
+    mask = cv2.circle(mask, (100,100), 100, (255,255,255), -1)
+        
     for i,p in enumerate(vtrack):
         print (i,p)
         x = p[0]-100
         y = p[1]-100
-        mask = np.zeros((200, 200, 4))
-        mask = cv2.circle(mask, (100,100), 100, (255,255,255), -1)
-        res = np.zeros((200, 200, 4))
+        #res = np.zeros((200, 200, 4))
         res = full_image[y:y+200,x:x+200]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
         res[:, :, 3] = mask[:,:,0]
