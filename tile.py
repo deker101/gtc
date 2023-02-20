@@ -39,7 +39,7 @@ def get_tile(x,y,z):
   check_file = os.path.isfile(localpath)
   print (localpath, check_file)
   if not check_file:
-    url = 'http://a.tile.openstreetmap.fr/hot/%d/%d/%d.png'%(z,x,y)
+    url = 'http://b.tile.openstreetmap.fr/hot/%d/%d/%d.png'%(z,x,y)
     print (url)
     resp = requests.get(url, stream=True).raw
     png = resp.read()

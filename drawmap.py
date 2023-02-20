@@ -6,7 +6,7 @@ from tile import deg2num, deg2num_trunc, get_tile
 from PIL import Image, ImageDraw
 import cv2
 import numpy as np
-
+import math
 import argparse
 
 fps = 25
@@ -76,20 +76,40 @@ def get_osm_tiles(points,name):
     full_image = np.zeros((h,w,3), np.uint8)
     tiles_cnt = (x_max-x_min)*(y_max-y_min)
     dnl=0
-    for x in range(x_min,x_max+1,1):
-        for y in range(y_min,y_max+1,1):
-            #url = 'https://c.tile.openstreetmap.de/%d/%d/%d.png'%(z,x,y)
-            #url = 'https://stamen-tiles.a.ssl.fastly.net/toner/%d/%d/%d.png'%(z,x,y)
-            
-            #surl = 'https://core-sat.maps.yandex.net/tiles?l=sat&x=%d&y=%d&z=%d'%(x,y,z)
-            #print (url)
-            tile = get_tile(x,y,z)
-            dnl+=1
-            xt = (x-x_min)*256
-            yt = (y-y_min)*256
-            print (dnl, tiles_cnt,xt,yt)
-            full_image[yt:yt+256,xt:xt+256] = tile
+    #get all tiles:
+    if False:
+        for x in range(x_min,x_max+1,1):
+            for y in range(y_min,y_max+1,1):
+                #url = 'https://c.tile.openstreetmap.de/%d/%d/%d.png'%(z,x,y)
+                #url = 'https://stamen-tiles.a.ssl.fastly.net/toner/%d/%d/%d.png'%(z,x,y)
+                
+                #surl = 'https://core-sat.maps.yandex.net/tiles?l=sat&x=%d&y=%d&z=%d'%(x,y,z)
+                #print (url)
+                tile = get_tile(x,y,z)
+                dnl+=1
+                xt = (x-x_min)*256
+                yt = (y-y_min)*256
+                print (dnl, tiles_cnt,xt,yt)
+                full_image[yt:yt+256,xt:xt+256] = tile
     
+    if True:
+        print ('hello')
+        tiles = []
+        for p in points:
+            lat = p[1]
+            lon = p[0]
+            x,y = deg2num(lat,lon,z)
+            
+            
+            #t = (xt,yt)
+            for dtx in [-1, 0, 1]:
+                for dty in [-1, 0, 1]:
+                    t = (x+dtx,y+dty)
+                    if t not in tiles:
+                        tile = get_tile(t[0],t[1],z)
+                        xt = (t[0]-x_min)*256
+                        yt = (t[1]-y_min)*256
+                        full_image[yt:yt+256,xt:xt+256] = tile
     for p in points:
         x,y = deg2num_trunc(p[1],p[0],z)
         x=int(256*(x-x_min))
@@ -122,7 +142,7 @@ def get_osm_tiles(points,name):
     #cv2.imwrite("temp-%dc.png"%z, tile)
     cv2.imwrite("%s-%dc.png"%(name,z), full_image)
     
-    
+    #exit()
 
     for i,p in enumerate(points):
         x,y = deg2num_trunc(p[1],p[0],z)
@@ -131,8 +151,8 @@ def get_osm_tiles(points,name):
         #print (x,y)
         #if len(track)<20:
         if p[3] == 0:
-            for pp in range(fps):
-                vtrack.append([x,y])
+            #for pp in range(fps):
+            vtrack.append([x,y,0.0])
             #break
         else:
             td = p[3]-points[i-1][3]
@@ -147,10 +167,17 @@ def get_osm_tiles(points,name):
                 #print ('td = ',td, d)
                 x = prev_x + (next_x-prev_x)/framecnt*d
                 y = prev_y + (next_y-prev_y)/framecnt*d
-                x=int(256*(x-x_min))
-                y=int(256*(y-y_min))
+                dx = next_x-prev_x
+                dy = next_y-prev_y
+                a = math.atan2(dy, dx)/math.pi*180
+                a+=360.0
+                #if a < 0:
+                #    a = 360 + a
+                x=round(256*(x-x_min))
+                y=round(256*(y-y_min))
                 print (i, 'td = ',td, d, x,y)
-                vtrack.append([x,y])
+                vtrack.append([x,y,a])
+    vtrack[0][2]=vtrack[1][2]
             #break
     print (ctrack[0:3])
     print (vtrack)
@@ -158,17 +185,44 @@ def get_osm_tiles(points,name):
     #exit()  
     mask = np.zeros((200, 200, 4))
     mask = cv2.circle(mask, (100,100), 100, (255,255,255), -1)
-        
+    angle = 3.0
+    for i,p in enumerate(vtrack[:-10]):
+        x_s=0
+        y_s=0
+        a_s=0
+        for j in range(10):
+            x_s += vtrack[i+j][0]
+            y_s += vtrack[i+j][1]
+            a_s += vtrack[i+j][2]
+        x_s/=10
+        y_s/=10
+        a_s/=10
+
+        for j in range(10):
+            vtrack[i+j][0] = x_s
+            vtrack[i+j][1] = y_s
+            vtrack[i+j][2] = a_s
+
+            
     for i,p in enumerate(vtrack):
         print (i,p)
-        x = p[0]-100
-        y = p[1]-100
+        x = round(p[0]-100)
+        y = round(p[1]-100)
         #res = np.zeros((200, 200, 4))
         res = full_image[y:y+200,x:x+200]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
         res[:, :, 3] = mask[:,:,0]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
+        angle = p[2]+90.0
+        rot_mat = cv2.getRotationMatrix2D((100,100), angle, 1.0)
+        res = cv2.warpAffine(res, rot_mat, res.shape[1::-1], flags=cv2.INTER_LINEAR)
+        
+        
         cv2.imwrite("output/res_%06d.png"%i, res)
+        #image_center = tuple(100,100)
+        
+        
+    return
 
     
  
