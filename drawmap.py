@@ -10,6 +10,7 @@ import numpy as np
 import argparse
 
 def get_gpx_points(gpx):
+    first_time = None
     points = []
     for track in gpx.tracks:
         print (track)
@@ -17,8 +18,13 @@ def get_gpx_points(gpx):
             
             print (segment)
             for point in segment.points:
-                p = [point.longitude, point.latitude, point.elevation]
+                if not first_time:
+                    first_time=point.time.timestamp()
+
+                p = [point.longitude, point.latitude, point.elevation, point.time.timestamp()-first_time]
                 points.append(p)
+                print (p)
+                
     return points
 
 def get_osm_tiles(points,name):
@@ -51,9 +57,14 @@ def get_osm_tiles(points,name):
     z = zoom
     track = []
     ctrack = []
+    vtrack = []
     x_min,y_min = deg2num(latmax,lonmin,z)
+    x_min-=1
+    y_min-=1
     #print (z, x,y)
     x_max,y_max = deg2num(latmin,lonmax,z)
+    x_max+=1
+    y_max+=1
     #print (z, w, h)
     w=(x_max-x_min)+1
     h=(y_max-y_min)+1
@@ -84,6 +95,17 @@ def get_osm_tiles(points,name):
         track.append(y)
         ctrack.append([x,y])
     
+    for i,p in enumerate(points):
+        x,y = deg2num_trunc(p[1],p[0],z)
+        x=int(256*(x-x_min))
+        y=int(256*(y-y_min))
+        #print (x,y)
+        #if len(track)<20:
+        if p[3] == 0:
+            vtrack.append([x,y])
+        else:
+            td = p[3]-points[i-1][3]
+            print ('td = ',td)
     
     print (ctrack)
     isClosed = False
