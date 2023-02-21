@@ -153,6 +153,7 @@ def get_osm_tiles(points,name):
         if p[3] == 0:
             #for pp in range(fps):
             vtrack.append([x,y,0.0])
+            prev_a = 0.0
             #break
         else:
             td = p[3]-points[i-1][3]
@@ -170,9 +171,17 @@ def get_osm_tiles(points,name):
                 dx = next_x-prev_x
                 dy = next_y-prev_y
                 a = math.atan2(dy, dx)/math.pi*180
-                a+=360.0
+                a+=90.0
+                
+                
                 #if a < 0:
                 #    a = 360 + a
+                #if a<0:
+                #    a+=360.0
+
+                #if math.fabs(a-prev_a) >= 180.0:
+                #    a+=360.0
+                prev_a = a
                 x=round(256*(x-x_min))
                 y=round(256*(y-y_min))
                 print (i, 'td = ',td, d, x,y)
@@ -201,9 +210,25 @@ def get_osm_tiles(points,name):
         for j in range(10):
             vtrack[i+j][0] = x_s
             vtrack[i+j][1] = y_s
-            vtrack[i+j][2] = a_s
+            #vtrack[i+j][2] = a_s
+    itt = enumerate(vtrack[:-10])
+    for i,p in itt:
+        if vtrack[i][2] == vtrack[i+10][2]:
+            j=0
+            continue
+        else:
+            if math.fabs(vtrack[i+10][2]-vtrack[i][2])>180.0:
+                #d_a = (vtrack[i+10][2]-vtrack[i][2]+360.0) / 10
+                if vtrack[i][2] < 0:
+                    vtrack[i][2]+=360.0
+                if vtrack[i+10][2] < 0:
+                    vtrack[i+10][2]+=360.0
 
-            
+            d_a = (vtrack[i+10][2]-vtrack[i][2]) / 10
+            for j in range(10):
+                vtrack[i+j][2]=vtrack[i][2] + j*d_a
+            for j in range(10):
+                next(itt)
     for i,p in enumerate(vtrack):
         print (i,p)
         x = round(p[0]-100)
@@ -211,7 +236,7 @@ def get_osm_tiles(points,name):
         #res = np.zeros((200, 200, 4))
         res = full_image[y:y+200,x:x+200]
         
-        angle = p[2]+90.0
+        angle = p[2]#+90.0
         rot_mat = cv2.getRotationMatrix2D((100,100), angle, 1.0) #1.0 - scale
         res = cv2.warpAffine(res, rot_mat, res.shape[1::-1], flags=cv2.INTER_LINEAR)
         
@@ -219,6 +244,15 @@ def get_osm_tiles(points,name):
         res[:, :, 3] = mask[:,:,0]
         res = cv2.cvtColor(res, cv2.COLOR_BGR2BGRA)
         
+        if False: #print azimuth
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            org = (50, 50)
+            fontScale = 1
+            thickness = 2
+            red_color = (0, 0, 255, 255)
+            res = cv2.putText(res, str("az %3.4f"%p[2]), org, font, 
+                       fontScale, red_color, thickness, cv2.LINE_AA)
+
         cv2.imwrite("output/res_%06d.png"%i, res)
         #image_center = tuple(100,100)
         
